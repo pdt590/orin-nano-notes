@@ -1,0 +1,18 @@
+services:
+  crawl4ai:
+    image: unclecode/crawl4ai:latest
+    container_name: crawl4ai
+
+    restart: unless-stopped
+
+    ports:
+      - "11235:11235"
+
+    shm_size: "1gb"
+
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./.llm.env:/app/.llm.env:ro
+
+    environment:
+      TZ: Asia/Ho_Chi_Minh
