@@ -16,3 +16,4 @@ services:
 
     environment:
       TZ: Asia/Ho_Chi_Minh
+      CRAWL4AI_API_TOKEN: 78bea0976c00ba5c4d223a5f4c414e53f8a1a5bb2aeb92e3d8eb1cde8b3c018e

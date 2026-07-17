@@ -83,3 +83,7 @@ sudo systemctl restart hermes-dashboard
 # check service
 sudo systemctl status hermes-dashboard
 ```
+
+- Should install mcp server on `~/.hermes/config.yaml` để cài (Lưu ý transport mặc định là http)
+- Should install skills to use mcp server efficiently (i.e., n8n)
+- Hermes prefers mcp streamable http and stdio
