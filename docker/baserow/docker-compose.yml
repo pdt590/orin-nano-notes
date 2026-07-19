@@ -3,7 +3,7 @@ services:
     container_name: baserow
     image: baserow/baserow:latest
     environment:
-      BASEROW_PUBLIC_URL: "http://localhost"
+      BASEROW_PUBLIC_URL: "https://baserow.hubplus.net"
     ports:
       - "19080:80"
       - "19443:443"
