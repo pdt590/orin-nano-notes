@@ -1,48 +1,48 @@
 # orin-nano notes
 
-## Reserved  ports
+## Reserved ports
 
-- 9router
-  - 20128
+1. 9router
+    1. 20128
 
-- baserow
-  - 19080
-  - 19443
+2. baserow
+    1. 19080
+    2. 19443
 
-- cloudflare-tunnel
+3. cloudflare-tunnel
 
-- crawl4ai
-  - 11235
+4. crawl4ai
+    1. 11235
 
-- dify
-  - 18080
-  - 18443
+5. dify
+    1. 18080
+    2. 18443
 
-- emqx
-  - 1883
-  - 8083
-  - 8084
-  - 8883
-  - 18083
+6. emqx
+    1. 1883
+    2. 8083
+    3. 8084
+    4. 8883
+    5. 18083
 
-- n8n
-  - 5678
+7. n8n
+    1. 5678
 
-- noip
+8. noip
 
-- openwebui
-  - 8181
+9. openwebui
+    1. 8181
 
-- qdrant
-  - 6333
-  - 6334
+10. qdrant
+    1. 6333
+    2. 6334
 
-- supabase
-  - 8345 (http)
-  - 8543 (https)
+11. supabase
+    1. 8345 (http)
+    2. 8543 (https)
 
-- hermes
-  - 9119
+12. hermes
+    1. 9119
 
-- ollama
-  - 11434
+13. ollama
+    1. 11434
