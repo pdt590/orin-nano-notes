@@ -1,0 +1,12 @@
+services:
+  grav:
+    image: getgrav/grav
+    container_name: grav
+    ports:
+      - "8080:80"
+    volumes:
+      - grav_site:/var/www/html
+    restart: unless-stopped
+
+volumes:
+  grav_site:
