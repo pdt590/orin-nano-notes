@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 set -e
 
+########################################
+# Colors
+########################################
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
+
+warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
 #############################################
 # Dify Docker Compose Installer
 #############################################
@@ -10,21 +31,21 @@ REPO_DIR="dify-repo"
 DOCKER_DIR="dify-docker"
 ENV_FILE=".env"
 
-echo "===================================="
-echo " Installing Dify"
-echo "===================================="
+info "Installing Dify..."
 
 #############################################
 # Check Docker
 #############################################
 
+info "Checking docker..."
+
 if ! command -v docker >/dev/null 2>&1; then
-    echo "Error: Docker is not installed."
+    error "Error: Docker is not installed."
     exit 1
 fi
 
 if ! docker compose version >/dev/null 2>&1; then
-    echo "Error: Docker Compose plugin is not installed."
+    error "Error: Docker Compose plugin is not installed."
     exit 1
 fi
 
@@ -33,7 +54,7 @@ fi
 ########################################
 
 if [ -d "$REPO_DIR" ]; then
-    echo "$REPO_DIR already exists."
+    warn "$REPO_DIR already exists."
     read -rp "Delete it? (y/N): " ans
     if [[ "$ans" =~ ^[Yy]$ ]]; then
         rm -rf "$REPO_DIR"
@@ -44,7 +65,7 @@ if [ -d "$REPO_DIR" ]; then
 fi
 
 if [ -d "$DOCKER_DIR" ]; then
-    echo "$DOCKER_DIR already exists."
+    warn "$DOCKER_DIR already exists."
     read -rp "Delete it? (y/N): " ans
     if [[ "$ans" =~ ^[Yy]$ ]]; then
         rm -rf "$DOCKER_DIR"
@@ -58,7 +79,7 @@ fi
 # Clone Dify
 #############################################
 
-echo "Downloading dify repository..."
+info "Downloading dify repository..."
 
 git clone \
     --filter=blob:none \
@@ -80,7 +101,7 @@ cd ..
 # Create Dify Docker Directory
 #############################################
 
-echo "Creating docker directory..."
+info "Creating docker directory..."
 
 mkdir "$DOCKER_DIR"
 
@@ -94,55 +115,54 @@ cd "$DOCKER_DIR"
 # Configure .env
 #############################################
 
-echo "Configuring .env..."
+info "Configuring .env..."
 
 set_env_var() {
-    local env_file="$1"
-    local key="$2"
-    local value="$3"
+    info "Setting $1=$2"
 
-    # Create file if it doesn't exist
-    touch "$env_file"
+    local key="$1"
+    local value="$2"
+    local file="${3:-$ENV_FILE}"
 
     # Escape characters for sed replacement
     local escaped_value
     escaped_value=$(printf '%s' "$value" | sed 's/[\/&]/\\&/g')
 
-    if grep -qE "^${key}=" "$env_file"; then
-        # Replace existing value
-        sed -i "s/^${key}=.*/${key}=${escaped_value}/" "$env_file"
+    if grep -qE "^${key}=" "$file"; then
+        # Update existing variable
+        sed -i "s/^${key}=.*/${key}=${escaped_value}/" "$file"
     else
         # Add new variable
-        printf "\n%s=%s\n" "$key" "$value" >> "$env_file"
+        echo "${key}=${value}" >> "$file"
     fi
 }
 
-set_env_var "$ENV_FILE" "EXPOSE_NGINX_PORT" "18080"
-set_env_var "$ENV_FILE" "EXPOSE_NGINX_SSL_PORT" "18443"
-set_env_var "$ENV_FILE" "COMPOSE_PROJECT_NAME" "dify"
-set_env_var "$ENV_FILE" "TRIGGER_URL" "https://dify.hubplus.net"
-set_env_var "$ENV_FILE" "CONSOLE_API_URL " "https://dify.hubplus.net"
-set_env_var "$ENV_FILE" "CONSOLE_WEB_URL " "https://dify.hubplus.net"
+set_env_var "EXPOSE_NGINX_PORT" "18080"
+set_env_var "EXPOSE_NGINX_SSL_PORT" "18443"
+set_env_var "COMPOSE_PROJECT_NAME" "dify"
+set_env_var "TRIGGER_URL" "https://dify.hubplus.net"
+set_env_var "CONSOLE_API_URL" "https://dify.hubplus.net"
+set_env_var "CONSOLE_WEB_URL" "https://dify.hubplus.net"
 
 #############################################
 # Pull images
 #############################################
 
-echo "Pulling Docker images..."
+info "Pulling Docker images..."
 docker compose pull
 
 #############################################
 # Start Dify
 #############################################
 
-echo "Starting Dify..."
+info "Starting Dify..."
 docker compose up -d
 
 #############################################
 # Wait for startup
 #############################################
 
-echo "Waiting for containers..."
+info "Waiting for containers..."
 sleep 20
 
 docker compose ps
@@ -153,12 +173,8 @@ docker compose ps
 
 IP=$(hostname -I | awk '{print $1}')
 
-echo
-echo "==========================================="
-echo "Dify has been started successfully!"
-echo
-echo "Open your browser:"
-echo "  http://localhost:18080/install"
-echo "or"
-echo "  http://$IP:18080/install"
-echo "==========================================="
+info "Dify has been started successfully!"
+info "Open your browser:"
+info "  http://localhost:18080/install"
+info "or"
+info "  http://$IP:18080/install"
