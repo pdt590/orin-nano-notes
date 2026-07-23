@@ -8,7 +8,8 @@ set -Eeuo pipefail
 
 REPO_URL="https://github.com/supabase/supabase"
 REPO_DIR="supabase-repo"
-PROJECT_DIR="supabase-project"
+DOCKER_DIR="docker"
+ENV_FILE=".env"
 
 ########################################
 # Colors
@@ -66,11 +67,11 @@ fi
 # Existing Project Directory
 ########################################
 
-if [ -d "$PROJECT_DIR" ]; then
-    warn "$PROJECT_DIR already exists."
+if [ -d "$DOCKER_DIR" ]; then
+    warn "$DOCKER_DIR already exists."
     read -rp "Delete it? (y/N): " ans
     if [[ "$ans" =~ ^[Yy]$ ]]; then
-        rm -rf "$PROJECT_DIR"
+        rm -rf "$DOCKER_DIR"
     else
         error "Installation cancelled."
         exit 1
@@ -105,17 +106,17 @@ cd ..
 
 info "Creating project..."
 
-mkdir "$PROJECT_DIR"
+mkdir "$DOCKER_DIR"
 
-cp -rf "$REPO_DIR/docker/"* "$PROJECT_DIR"
+cp -rf "$REPO_DIR/docker/"* "$DOCKER_DIR"
 
-cp "$REPO_DIR/docker/.env.example" "$PROJECT_DIR/.env"
+cp "$REPO_DIR/docker/.env.example" "$DOCKER_DIR/.env"
 
 ########################################
 # Enter Project
 ########################################
 
-cd "$PROJECT_DIR"
+cd "$DOCKER_DIR"
 
 ########################################
 # Pull Images
@@ -147,93 +148,30 @@ sh utils/add-new-auth-keys.sh
 
 info "Configure Supabase settings"
 
-# Read current values
-CURRENT_DASHBOARD_USERNAME=$(grep "^DASHBOARD_USERNAME=" .env | cut -d '=' -f2 || true)
-CURRENT_DASHBOARD_PASSWORD=$(grep "^DASHBOARD_PASSWORD=" .env | cut -d '=' -f2 || true)
-CURRENT_KONG_HTTP_PORT=$(grep "^KONG_HTTP_PORT=" .env | cut -d '=' -f2 || true)
-CURRENT_KONG_HTTPS_PORT=$(grep "^KONG_HTTPS_PORT=" .env | cut -d '=' -f2 || true)
+set_env_var() {
+    info "Setting $1=$2"
 
+    local key="$1"
+    local value="$2"
+    local file="${3:-$ENV_FILE}"
 
-update_env_value() {
-    local key=$1
-    local value=$2
+    # Escape characters for sed replacement
+    local escaped_value
+    escaped_value=$(printf '%s' "$value" | sed 's/[\/&]/\\&/g')
 
-    if grep -q "^${key}=" .env; then
-        sed -i "s|^${key}=.*|${key}=${value}|" .env
+    if grep -qE "^${key}=" "$file"; then
+        # Update existing variable
+        sed -i "s/^${key}=.*/${key}=${escaped_value}/" "$file"
     else
-        echo "${key}=${value}" >> .env
+        # Add new variable
+        echo "${key}=${value}" >> "$file"
     fi
 }
 
-
-########################################
-# Dashboard Username
-########################################
-
-read -rp \
-"Change DASHBOARD_USERNAME (current: ${CURRENT_DASHBOARD_USERNAME})? Enter new value or press Enter to keep: " \
-NEW_DASHBOARD_USERNAME
-
-if [ -n "$NEW_DASHBOARD_USERNAME" ]; then
-    update_env_value "DASHBOARD_USERNAME" "$NEW_DASHBOARD_USERNAME"
-fi
-
-
-########################################
-# Dashboard Password
-########################################
-
-read -rsp \
-"Change DASHBOARD_PASSWORD (current hidden)? Enter new password or press Enter to keep: " \
-NEW_DASHBOARD_PASSWORD
-
-echo
-
-if [ -n "$NEW_DASHBOARD_PASSWORD" ]; then
-    update_env_value "DASHBOARD_PASSWORD" "$NEW_DASHBOARD_PASSWORD"
-fi
-
-
-########################################
-# Kong HTTP Port
-########################################
-
-read -rp \
-"Change KONG_HTTP_PORT (current: ${CURRENT_KONG_HTTP_PORT})? Enter new port or press Enter to keep: " \
-NEW_KONG_HTTP_PORT
-
-if [ -n "$NEW_KONG_HTTP_PORT" ]; then
-    update_env_value "KONG_HTTP_PORT" "$NEW_KONG_HTTP_PORT"
-fi
-
-
-########################################
-# Kong HTTPS Port
-########################################
-
-read -rp \
-"Change KONG_HTTPS_PORT (current: ${CURRENT_KONG_HTTPS_PORT})? Enter new port or press Enter to keep: " \
-NEW_KONG_HTTPS_PORT
-
-if [ -n "$NEW_KONG_HTTPS_PORT" ]; then
-    update_env_value "KONG_HTTPS_PORT" "$NEW_KONG_HTTPS_PORT"
-fi
-
-########################################
-# Update URLs based on Kong HTTP Port
-########################################
-
-KONG_HTTP_PORT=$(grep "^KONG_HTTP_PORT=" .env | cut -d '=' -f2)
-
-info "Updating Supabase URLs..."
-
-update_env_value \
-    "SUPABASE_PUBLIC_URL" \
-    "http://localhost:${KONG_HTTP_PORT}"
-
-update_env_value \
-    "API_EXTERNAL_URL" \
-    "http://localhost:${KONG_HTTP_PORT}/auth/v1"
+set_env_var "DASHBOARD_USERNAME" "admin"
+set_env_var "DASHBOARD_PASSWORD" "Mot23456"
+set_env_var "KONG_HTTP_PORT" "8345"
+set_env_var "KONG_HTTPS_PORT" "8543"
 
 ########################################
 # Start Supabase

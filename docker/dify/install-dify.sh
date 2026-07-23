@@ -28,7 +28,7 @@ error() {
 
 REPO_URL="https://github.com/langgenius/dify.git"
 REPO_DIR="dify-repo"
-DOCKER_DIR="dify-docker"
+DOCKER_DIR="docker"
 ENV_FILE=".env"
 
 info "Installing Dify..."
