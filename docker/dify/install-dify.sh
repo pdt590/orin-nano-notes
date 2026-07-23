@@ -121,6 +121,8 @@ set_env_var "$ENV_FILE" "EXPOSE_NGINX_PORT" "18080"
 set_env_var "$ENV_FILE" "EXPOSE_NGINX_SSL_PORT" "18443"
 set_env_var "$ENV_FILE" "COMPOSE_PROJECT_NAME" "dify"
 set_env_var "$ENV_FILE" "TRIGGER_URL" "https://dify.hubplus.net"
+set_env_var "$ENV_FILE" "CONSOLE_API_URL " "https://dify.hubplus.net"
+set_env_var "$ENV_FILE" "CONSOLE_WEB_URL " "https://dify.hubplus.net"
 
 #############################################
 # Pull images
