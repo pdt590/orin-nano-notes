@@ -5,7 +5,10 @@ set -e
 # Dify Docker Compose Installer
 #############################################
 
-DIFY_DIR="$(pwd)/dify-repo"
+REPO_URL="https://github.com/langgenius/dify.git"
+REPO_DIR="dify-repo"
+DOCKER_DIR="dify-docker"
+ENV_FILE=".env"
 
 echo "===================================="
 echo " Installing Dify"
@@ -25,31 +28,67 @@ if ! docker compose version >/dev/null 2>&1; then
     exit 1
 fi
 
+########################################
+# Cleanup Existing Directories
+########################################
+
+if [ -d "$REPO_DIR" ]; then
+    echo "$REPO_DIR already exists."
+    read -rp "Delete it? (y/N): " ans
+    if [[ "$ans" =~ ^[Yy]$ ]]; then
+        rm -rf "$REPO_DIR"
+    else
+        error "Installation cancelled."
+        exit 1
+    fi
+fi
+
+if [ -d "$DOCKER_DIR" ]; then
+    echo "$DOCKER_DIR already exists."
+    read -rp "Delete it? (y/N): " ans
+    if [[ "$ans" =~ ^[Yy]$ ]]; then
+        rm -rf "$DOCKER_DIR"
+    else
+        error "Installation cancelled."
+        exit 1
+    fi
+fi
+
 #############################################
 # Clone Dify
 #############################################
 
-if [ ! -d "$DIFY_DIR" ]; then
-    echo "Cloning Dify..."
-    git clone https://github.com/langgenius/dify.git "$DIFY_DIR"
-else
-    echo "Using existing Dify directory: $DIFY_DIR"
-fi
+echo "Downloading dify repository..."
+
+git clone \
+    --filter=blob:none \
+    --no-checkout \
+    --depth=1 \
+    --quiet \
+    "$REPO_URL" \
+	"$REPO_DIR"
+
+cd "$REPO_DIR"
+
+git sparse-checkout init --cone
+git sparse-checkout set docker
+git checkout --quiet
+
+cd ..
 
 #############################################
-# Go to docker directory
+# Create Dify Docker Directory
 #############################################
 
-cd "$DIFY_DIR/docker"
+echo "Creating docker directory..."
 
-#############################################
-# Create .env
-#############################################
+mkdir "$DOCKER_DIR"
 
-if [ ! -f ".env" ]; then
-    echo "Creating .env..."
-    cp .env.example .env
-fi
+cp -rf "$REPO_DIR/docker/"* "$DOCKER_DIR"
+
+cp "$REPO_DIR/docker/.env.example" "$DOCKER_DIR/.env"
+
+cd "$DOCKER_DIR"
 
 #############################################
 # Configure .env
@@ -57,18 +96,31 @@ fi
 
 echo "Configuring .env..."
 
-# Update if exists, otherwise append
-grep -q "^EXPOSE_NGINX_PORT=" .env \
-    && sed -i 's/^EXPOSE_NGINX_PORT=.*/EXPOSE_NGINX_PORT=18080/' .env \
-    || echo "EXPOSE_NGINX_PORT=18080" >> .env
+set_env_var() {
+    local env_file="$1"
+    local key="$2"
+    local value="$3"
 
-grep -q "^EXPOSE_NGINX_SSL_PORT=" .env \
-    && sed -i 's/^EXPOSE_NGINX_SSL_PORT=.*/EXPOSE_NGINX_SSL_PORT=18443/' .env \
-    || echo "EXPOSE_NGINX_SSL_PORT=18443" >> .env
+    # Create file if it doesn't exist
+    touch "$env_file"
 
-grep -q "^COMPOSE_PROJECT_NAME=" .env \
-    && sed -i 's/^COMPOSE_PROJECT_NAME=.*/COMPOSE_PROJECT_NAME=dify/' .env \
-    || echo "COMPOSE_PROJECT_NAME=dify" >> .env
+    # Escape characters for sed replacement
+    local escaped_value
+    escaped_value=$(printf '%s' "$value" | sed 's/[\/&]/\\&/g')
+
+    if grep -qE "^${key}=" "$env_file"; then
+        # Replace existing value
+        sed -i "s/^${key}=.*/${key}=${escaped_value}/" "$env_file"
+    else
+        # Add new variable
+        printf "\n%s=%s\n" "$key" "$value" >> "$env_file"
+    fi
+}
+
+set_env_var "$ENV_FILE" "EXPOSE_NGINX_PORT" "18080"
+set_env_var "$ENV_FILE" "EXPOSE_NGINX_SSL_PORT" "18443"
+set_env_var "$ENV_FILE" "COMPOSE_PROJECT_NAME" "dify"
+set_env_var "$ENV_FILE" "TRIGGER_URL" "https://dify.hubplus.net"
 
 #############################################
 # Pull images
